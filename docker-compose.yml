@@ -1,0 +1,83 @@
+# Public entry: Caddy (TLS) -> gateway -> one backend per Umbraco major.
+# The gateway picks the backend from the site behind the requested hostname (sites.json).
+# Backends have no published ports; only Caddy is reachable from outside.
+# Not using a major (e.g. 19)? Remove that service and its volume.
+x-backend: &backend
+  restart: unless-stopped
+  env_file:
+    - path: .env          # optional: UMBRACO_TOOL_MODES, UMBRACO_READONLY, UMBRACO_DRY_RUN ...
+      required: false
+  environment:
+    SITES_FILE: /config/sites.json
+    TRUST_PROXY: "true"
+  volumes:
+    - ./sites.json:/config/sites.json:ro
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - gateway
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    image: umbraco-mcp-gateway:dev
+    restart: unless-stopped
+    environment:
+      SITES_FILE: /config/sites.json
+      TRUST_PROXY: "true"
+    volumes:
+      - ./sites.json:/config/sites.json:ro
+    depends_on:
+      - mcp-v17
+      - mcp-v18
+      - mcp-v19
+
+  mcp-v17:
+    <<: *backend
+    build:
+      context: .
+      args:
+        EDITOR_MCP_REF: v17.6.2
+    image: umbraco-mcp-editor-node:v17
+    volumes:
+      - ./sites.json:/config/sites.json:ro
+      - mcp-v17-data:/data
+
+  mcp-v18:
+    <<: *backend
+    build:
+      context: .
+      args:
+        EDITOR_MCP_REF: v18.0.2
+    image: umbraco-mcp-editor-node:v18
+    volumes:
+      - ./sites.json:/config/sites.json:ro
+      - mcp-v18-data:/data
+
+  # Umbraco 19 is still in beta upstream (Editor MCP 19.0.0-beta.2).
+  mcp-v19:
+    <<: *backend
+    build:
+      context: .
+      args:
+        EDITOR_MCP_REF: v19.0.0-beta.2
+    image: umbraco-mcp-editor-node:v19
+    volumes:
+      - ./sites.json:/config/sites.json:ro
+      - mcp-v19-data:/data
+
+volumes:
+  mcp-v17-data:
+  mcp-v18-data:
+  mcp-v19-data:
+  caddy-data:

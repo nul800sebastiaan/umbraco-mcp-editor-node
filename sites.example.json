@@ -1,0 +1,16 @@
+{
+  "sites": [
+    {
+      "host": "marketing.mcp.example.com",
+      "baseUrl": "https://marketing.example.com",
+      "clientId": "umbraco-cms-editor-mcp-hosted",
+      "major": 18
+    },
+    {
+      "host": "intranet.mcp.example.com",
+      "baseUrl": "https://intranet.example.com",
+      "clientId": "umbraco-cms-editor-mcp-hosted",
+      "major": 17
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+editor/
+data/
+.env
+package-lock.json
+sites.json

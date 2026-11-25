@@ -1,0 +1,17 @@
+{
+	# Issue certificates on demand, but only for hostnames listed in sites.json
+	# (the gateway answers /tls-check for configured hosts only).
+	on_demand_tls {
+		ask http://gateway:8787/tls-check
+	}
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+	# Rate-limit /register here if internet-facing (dynamic client registration is open).
+	reverse_proxy gateway:8787 {
+		flush_interval -1
+	}
+}
