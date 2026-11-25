@@ -1,9 +1,12 @@
 # Dockhand stack for use BEHIND Pangolin: Pangolin does routing and TLS, so there is no Caddy.
-# Self-contained: sites.json is inlined below (needs Compose >= 2.23).
-# Only the gateway joins the external `shared` network that your Pangolin Newt can reach.
+# Sites live in a FILE on the VPS, so adding a site needs no redeploy: edit the file and the
+# gateway and backends pick it up within seconds.
 #
-# 1. Edit `configs.sites.content` below (and delete majors you don't use). Deploy.
-# 2. In Pangolin: public resource on your Newt site, subdomain `*` (or one resource per site),
+# 1. On the VPS create /srv/umbraco-mcp/sites.json (see sites.example.json), or set the stack
+#    variable SITES_DIR to another folder. The FOLDER is mounted (not the file), so editors that
+#    replace the file on save still work.
+# 2. Deploy this stack. Only the gateway joins the external `shared` network.
+# 3. In Pangolin: public resource on your Newt site, subdomain `*` (or one per site),
 #    target http://umbraco-mcp-gateway:8787 over plain http, Pangolin authentication OFF
 #    (Umbraco handles the login).
 x-backend: &backend
@@ -12,9 +15,6 @@ x-backend: &backend
     SITES_FILE: /config/sites.json
     TRUST_PROXY: "true"
     # UMBRACO_READONLY: "true"
-  configs:
-    - source: sites
-      target: /config/sites.json
 
 services:
   gateway:
@@ -23,9 +23,8 @@ services:
     environment:
       SITES_FILE: /config/sites.json
       TRUST_PROXY: "true"
-    configs:
-      - source: sites
-        target: /config/sites.json
+    volumes:
+      - ${SITES_DIR:-/srv/umbraco-mcp}:/config:ro
     networks:
       default:
       shared:
@@ -35,27 +34,23 @@ services:
   mcp-v17:
     <<: *backend
     image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v17
-    volumes: [mcp-v17-data:/data]
+    volumes:
+      - mcp-v17-data:/data
+      - ${SITES_DIR:-/srv/umbraco-mcp}:/config:ro
 
   mcp-v18:
     <<: *backend
     image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v18
-    volumes: [mcp-v18-data:/data]
+    volumes:
+      - mcp-v18-data:/data
+      - ${SITES_DIR:-/srv/umbraco-mcp}:/config:ro
 
   mcp-v19:
     <<: *backend
     image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v19
-    volumes: [mcp-v19-data:/data]
-
-configs:
-  sites:
-    content: |
-      { "sites": [
-        { "host": "marketing.mcp.example.com",
-          "baseUrl": "https://marketing.example.com",
-          "clientId": "umbraco-cms-editor-mcp-hosted",
-          "major": 18 }
-      ] }
+    volumes:
+      - mcp-v19-data:/data
+      - ${SITES_DIR:-/srv/umbraco-mcp}:/config:ro
 
 volumes:
   mcp-v17-data:
