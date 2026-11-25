@@ -53,6 +53,10 @@ Optional `.env` (see `.env.example`): `UMBRACO_TOOL_MODES`, `UMBRACO_READONLY`, 
 
 Create a stack and paste `docker-compose.stack.yml`. It needs no uploaded files: `sites.json` and the Caddyfile are inlined as `configs`, so edit the site list in the stack editor and redeploy. Open ports 80/443 and point DNS at the VPS.
 
+### Behind Pangolin
+
+Use `docker-compose.pangolin.yml` instead (no Caddy). Set its `pangolin` network to the one your Newt connector is on, then in Pangolin create a public resource (subdomain `*` for a wildcard, or one per site) targeting `http://umbraco-mcp-gateway:8787` with Pangolin authentication off. Keep `TRUST_PROXY=true` so the gateway picks the site from `X-Forwarded-Host`.
+
 ## 3. Connect Claude
 
 Add a custom connector with `https://marketing.mcp.example.com/mcp` and sign in with a backoffice account. Claude Code:

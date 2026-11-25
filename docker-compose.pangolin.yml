@@ -1,0 +1,65 @@
+# Dockhand stack for use BEHIND Pangolin (Pangolin does routing and TLS, so there is no Caddy).
+# Self-contained: sites.json is inlined below (needs Compose >= 2.23).
+# 1. Edit `configs.sites.content` (and delete majors you don't use).
+# 2. Set the network at the bottom to the Docker network your Pangolin connector (Newt) is on.
+#    Find it with `docker inspect <newt-container> --format '{{json .NetworkSettings.Networks}}'`.
+# 3. In Pangolin: public resource, subdomain `*` (or one resource per site), target http://umbraco-mcp-gateway:8787
+#    over plain http, with Pangolin authentication turned OFF (Umbraco handles the login).
+x-backend: &backend
+  restart: unless-stopped
+  environment:
+    SITES_FILE: /config/sites.json
+    TRUST_PROXY: "true"
+    # UMBRACO_READONLY: "true"
+  configs:
+    - source: sites
+      target: /config/sites.json
+
+services:
+  gateway:
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node-gateway:latest
+    restart: unless-stopped
+    environment:
+      SITES_FILE: /config/sites.json
+      TRUST_PROXY: "true"
+    container_name: umbraco-mcp-gateway
+    configs:
+      - source: sites
+        target: /config/sites.json
+    networks: [default, pangolin]
+    depends_on: [mcp-v17, mcp-v18, mcp-v19]
+
+  mcp-v17:
+    <<: *backend
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v17
+    volumes: [mcp-v17-data:/data]
+
+  mcp-v18:
+    <<: *backend
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v18
+    volumes: [mcp-v18-data:/data]
+
+  mcp-v19:
+    <<: *backend
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v19
+    volumes: [mcp-v19-data:/data]
+
+configs:
+  sites:
+    content: |
+      { "sites": [
+        { "host": "marketing.mcp.example.com",
+          "baseUrl": "https://marketing.example.com",
+          "clientId": "umbraco-cms-editor-mcp-hosted",
+          "major": 18 }
+      ] }
+
+volumes:
+  mcp-v17-data:
+  mcp-v18-data:
+  mcp-v19-data:
+
+networks:
+  pangolin:
+    external: true
+    name: pangolin   # change to your Pangolin/Newt network name
