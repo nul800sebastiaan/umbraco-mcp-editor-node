@@ -55,7 +55,7 @@ Create a stack and paste `docker-compose.stack.yml`. It needs no uploaded files:
 
 ### Behind Pangolin
 
-Use `docker-compose.pangolin.yml` instead (no Caddy). It includes a Newt connector, so create a site in Pangolin and put its endpoint, ID and secret into the stack's environment (`PANGOLIN_ENDPOINT`, `NEWT_ID`, `NEWT_SECRET`). Then add a public resource on that site (subdomain `*` for a wildcard, or one per site) targeting `http://gateway:8787` with Pangolin authentication off. Keep `TRUST_PROXY=true` so the gateway picks the site from `X-Forwarded-Host`.
+Use `docker-compose.pangolin.yml` instead (no Caddy). The gateway joins an external Docker network named `shared` (rename it to the one your Newt connector is on) under the alias `umbraco-mcp-gateway`. In Pangolin, add a public resource on that Newt's site (subdomain `*` for a wildcard, or one per site) targeting `http://umbraco-mcp-gateway:8787` with Pangolin authentication off. Keep `TRUST_PROXY=true` so the gateway picks the site from `X-Forwarded-Host`.
 
 ## 3. Connect Claude
 

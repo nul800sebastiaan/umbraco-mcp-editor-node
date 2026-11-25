@@ -1,11 +1,10 @@
 # Dockhand stack for use BEHIND Pangolin: Pangolin does routing and TLS, so there is no Caddy.
-# Self-contained, nothing to upload or look up on the VPS (needs Compose >= 2.23).
+# Self-contained: sites.json is inlined below (needs Compose >= 2.23).
+# Only the gateway joins the external `shared` network that your Pangolin Newt can reach.
 #
-# 1. In Pangolin: Sites > Add site (Newt). Copy the endpoint, ID and secret into this stack's
-#    environment variables in Dockhand: PANGOLIN_ENDPOINT, NEWT_ID, NEWT_SECRET.
-# 2. Edit `configs.sites.content` below (and delete majors you don't use). Deploy.
-# 3. In Pangolin: public resource on that site, subdomain `*` (or one resource per site),
-#    target http://gateway:8787 over plain http, Pangolin authentication OFF
+# 1. Edit `configs.sites.content` below (and delete majors you don't use). Deploy.
+# 2. In Pangolin: public resource on your Newt site, subdomain `*` (or one resource per site),
+#    target http://umbraco-mcp-gateway:8787 over plain http, Pangolin authentication OFF
 #    (Umbraco handles the login).
 x-backend: &backend
   restart: unless-stopped
@@ -18,15 +17,6 @@ x-backend: &backend
       target: /config/sites.json
 
 services:
-  newt:
-    image: fosrl/newt:latest
-    restart: unless-stopped
-    environment:
-      PANGOLIN_ENDPOINT: ${PANGOLIN_ENDPOINT:?set in the stack environment}
-      NEWT_ID: ${NEWT_ID:?set in the stack environment}
-      NEWT_SECRET: ${NEWT_SECRET:?set in the stack environment}
-    depends_on: [gateway]
-
   gateway:
     image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node-gateway:latest
     restart: unless-stopped
@@ -36,6 +26,10 @@ services:
     configs:
       - source: sites
         target: /config/sites.json
+    networks:
+      default:
+      shared:
+        aliases: [umbraco-mcp-gateway]
     depends_on: [mcp-v17, mcp-v18, mcp-v19]
 
   mcp-v17:
@@ -67,3 +61,7 @@ volumes:
   mcp-v17-data:
   mcp-v18-data:
   mcp-v19-data:
+
+networks:
+  shared:
+    external: true
