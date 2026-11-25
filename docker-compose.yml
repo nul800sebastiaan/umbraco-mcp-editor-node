@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.gateway
-    image: umbraco-mcp-gateway:dev
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node-gateway:latest
     restart: unless-stopped
     environment:
       SITES_FILE: /config/sites.json
@@ -48,7 +48,7 @@ services:
       context: .
       args:
         EDITOR_MCP_REF: v17.6.2
-    image: umbraco-mcp-editor-node:v17
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v17
     volumes:
       - ./sites.json:/config/sites.json:ro
       - mcp-v17-data:/data
@@ -59,7 +59,7 @@ services:
       context: .
       args:
         EDITOR_MCP_REF: v18.0.2
-    image: umbraco-mcp-editor-node:v18
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v18
     volumes:
       - ./sites.json:/config/sites.json:ro
       - mcp-v18-data:/data
@@ -71,7 +71,7 @@ services:
       context: .
       args:
         EDITOR_MCP_REF: v19.0.0-beta.2
-    image: umbraco-mcp-editor-node:v19
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v19
     volumes:
       - ./sites.json:/config/sites.json:ro
       - mcp-v19-data:/data

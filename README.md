@@ -31,8 +31,10 @@ Install the `Umbraco.Mcp.HostedAuth` NuGet package matching the site's major, th
 
 ```bash
 cp sites.example.json sites.json   # one entry per Umbraco site
-docker compose up -d --build
+docker compose up -d               # pulls prebuilt images from ghcr.io
 ```
+
+Images are built by GitHub Actions on every push to `main`: `ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v17|v18|v19` and `…-gateway:latest` (plus per-commit `sha` tags). To build locally instead, use `docker compose up -d --build`.
 
 `sites.json` entries (all required):
 
