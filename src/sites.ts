@@ -9,7 +9,7 @@
  * Every site gets its own SQLite store, so OAuth clients, grants and Umbraco tokens never
  * mix between sites.
  */
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { SqliteKV } from "./kv.js";
 
 export interface SiteEntry {
@@ -38,6 +38,12 @@ export class SiteRegistry {
   }
 
   private reload() {
+    if (!existsSync(this.file)) {
+      // Fine in dynamic-only setups: no fixed sites.
+      this.sites = new Map();
+      this.mtimeMs = 0;
+      return;
+    }
     const parsed = JSON.parse(readFileSync(this.file, "utf8")) as { sites?: Array<Partial<SiteEntry>> };
     const next = new Map<string, SiteEntry>();
     for (const [i, raw] of (parsed.sites ?? []).entries()) {
@@ -61,7 +67,8 @@ export class SiteRegistry {
   /** Looks a site up by the request's Host (port included, then without the port). */
   resolve(host: string): SiteEntry | undefined {
     try {
-      if (statSync(this.file).mtimeMs !== this.mtimeMs) this.reload();
+      const mtime = existsSync(this.file) ? statSync(this.file).mtimeMs : 0;
+      if (mtime !== this.mtimeMs) this.reload();
     } catch (error) {
       console.error("[sites] could not reload sites file, keeping previous config:", error);
     }

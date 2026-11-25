@@ -57,6 +57,19 @@ Create a stack and paste `docker-compose.stack.yml`. It needs no uploaded files:
 
 Use `docker-compose.pangolin.yml` instead (no Caddy). It reads `sites.json` from a folder on the VPS (`/srv/umbraco-mcp` by default, or set `SITES_DIR`), so adding a site means editing that file, with no redeploy. The folder is mounted, not the file, so editors that replace the file on save still work. The gateway joins an external Docker network named `shared` (rename it to the one your Newt is on) under the alias `umbraco-mcp-gateway`. In Pangolin, add a public resource on that Newt's site (subdomain `*` for a wildcard, or one per site) targeting `http://umbraco-mcp-gateway:8787` with Pangolin authentication off. Keep `TRUST_PROXY=true` so the gateway picks the site from `X-Forwarded-Host`.
 
+### Dynamic sites (no `sites.json` entry)
+
+Set `DYNAMIC_DOMAIN` (say `mcp.example.com`) and `ADMIN_TOKEN` on the gateway. Then any Umbraco site can use a hostname that encodes the version and the site, with each dot written as `--`:
+
+| Hostname | Means |
+|---|---|
+| `v18--releases--umbraco--com.mcp.example.com` | Umbraco 18 at `https://releases.umbraco.com` |
+| `v17--my-site--example--co--uk.mcp.example.com` | Umbraco 17 at `https://my-site.example.co.uk` |
+
+The site's `HostedMcp` origin is that same hostname (`https://v18--releases--umbraco--com.mcp.example.com`), and the connector is `…/mcp`.
+
+The first request from a new site is refused (403) and lands in a pending list. Open the **approval page** (port 8788, its own Pangolin/proxy route with authentication on, plus the `ADMIN_TOKEN`), review the decoded URL and click Approve. Approval is per Umbraco URL, so later `v17--`/`v19--` hostnames of the same site work with no new approval. Guards: only `https`, hostnames must resolve to public addresses at approval time, nothing is fetched before approval, the pending list is capped, and the port is separate from the public one. A DNS label is at most 63 characters, so very long site names need a `sites.json` entry instead. Fixed entries in `sites.json` keep working alongside.
+
 ## 3. Connect Claude
 
 Add a custom connector with `https://marketing.mcp.example.com/mcp` and sign in with a backoffice account. Claude Code:

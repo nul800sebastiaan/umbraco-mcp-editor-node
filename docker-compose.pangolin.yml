@@ -9,6 +9,9 @@
 # 3. In Pangolin: public resource on your Newt site, subdomain `*` (or one per site),
 #    target http://umbraco-mcp-gateway:8787 over plain http, Pangolin authentication OFF
 #    (Umbraco handles the login).
+# 4. Optional, for sites that need no sites.json entry: set stack variables DYNAMIC_DOMAIN
+#    (e.g. mcp.cork.nl) and ADMIN_TOKEN, and add a second Pangolin resource for the approval page:
+#    e.g. mcp-admin.cork.nl -> http://umbraco-mcp-gateway:8788, Pangolin authentication ON.
 x-backend: &backend
   restart: unless-stopped
   environment:
@@ -23,8 +26,12 @@ services:
     environment:
       SITES_FILE: /config/sites.json
       TRUST_PROXY: "true"
+      # Dynamic sites: v18--site--example--com.<DYNAMIC_DOMAIN>, approved at :8788 (see README).
+      DYNAMIC_DOMAIN: ${DYNAMIC_DOMAIN:-}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
     volumes:
       - ${SITES_DIR:-/srv/umbraco-mcp}:/config:ro
+      - gateway-data:/data
     networks:
       default:
       shared:
@@ -53,6 +60,7 @@ services:
       - ${SITES_DIR:-/srv/umbraco-mcp}:/config:ro
 
 volumes:
+  gateway-data:
   mcp-v17-data:
   mcp-v18-data:
   mcp-v19-data:

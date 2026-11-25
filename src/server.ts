@@ -36,7 +36,7 @@ import {
 import editorPackage from "../editor/package.json" with { type: "json" };
 
 import { SqliteKV } from "./kv.js";
-import { SiteRegistry } from "./sites.js";
+import { SiteRegistry, type SiteEntry } from "./sites.js";
 import { createMcpHandler } from "./mcp-handler.js";
 
 // ---------------------------------------------------------------------------
@@ -58,6 +58,7 @@ const DATA_DIR = process.env.DATA_DIR ?? "./data";
 
 const SITES_FILE = process.env.SITES_FILE;
 const OWN_MAJOR = Number(UMBRACO_TARGET_MAJOR);
+const TRUST_PROXY = process.env.TRUST_PROXY === "true";
 
 const baseEnv = Object.fromEntries(
   Object.entries(process.env).filter(([, v]) => typeof v === "string"),
@@ -146,10 +147,28 @@ function jsonError(status: number, message: string): Response {
   });
 }
 
+/**
+ * A site described by the gateway (approved dynamic site). Only honoured with TRUST_PROXY, i.e.
+ * when this backend is reachable from the gateway alone, like the X-Forwarded-* headers.
+ */
+function dynamicSite(request: Request, host: string): SiteEntry | undefined {
+  if (!TRUST_PROXY) return undefined;
+  const baseUrl = request.headers.get("x-mcp-site-base-url");
+  const major = Number(request.headers.get("x-mcp-site-major"));
+  if (!baseUrl || !Number.isInteger(major) || !/^https:\/\/[a-z0-9.-]+$/.test(baseUrl)) return undefined;
+  return {
+    host: host.replace(/:\d+$/, "").toLowerCase(),
+    baseUrl,
+    clientId: process.env.DYNAMIC_CLIENT_ID ?? "umbraco-cms-editor-mcp-hosted",
+    major,
+  };
+}
+
 /** Builds the per-request env: the site's own Umbraco URL, client id and OAuth store. */
 function envFor(request: Request): Env | Response {
   if (singleSiteEnv) return singleSiteEnv;
-  const site = registry!.resolve(new URL(request.url).host);
+  const host = new URL(request.url).host;
+  const site = registry!.resolve(host) ?? dynamicSite(request, host);
   if (!site) return jsonError(404, "Unknown host: no Umbraco site is configured for it");
   if (site.major !== OWN_MAJOR) {
     return jsonError(421, `This backend serves Umbraco ${OWN_MAJOR}; site ${site.host} is configured as ${site.major}`);
