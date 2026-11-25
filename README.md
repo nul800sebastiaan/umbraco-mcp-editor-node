@@ -49,6 +49,10 @@ Point DNS for the hostnames (a wildcard works) at the VM. Caddy gets certificate
 
 Optional `.env` (see `.env.example`): `UMBRACO_TOOL_MODES`, `UMBRACO_READONLY`, `UMBRACO_DRY_RUN`.
 
+### Dockhand / Portainer
+
+Create a stack and paste `docker-compose.stack.yml`. It needs no uploaded files: `sites.json` and the Caddyfile are inlined as `configs`, so edit the site list in the stack editor and redeploy. Open ports 80/443 and point DNS at the VPS.
+
 ## 3. Connect Claude
 
 Add a custom connector with `https://marketing.mcp.example.com/mcp` and sign in with a backoffice account. Claude Code:

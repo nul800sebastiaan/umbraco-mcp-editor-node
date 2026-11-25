@@ -1,0 +1,84 @@
+# Self-contained stack for Dockhand / Portainer / any "paste a compose file" UI.
+# No files to upload: sites.json and the Caddyfile are inlined below (needs Compose >= 2.23).
+# 1. Edit the sites list under `configs.sites.content` (and delete majors you don't use).
+# 2. Point DNS for each MCP hostname at this VPS, open ports 80 and 443, deploy.
+# Already have a reverse proxy on 80/443? Remove `caddy`, and route your hostnames to gateway:8787
+# (forward Host and X-Forwarded-Proto, disable response buffering).
+x-backend: &backend
+  restart: unless-stopped
+  environment:
+    SITES_FILE: /config/sites.json
+    TRUST_PROXY: "true"
+    # UMBRACO_READONLY: "true"
+  configs:
+    - source: sites
+      target: /config/sites.json
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - caddy-data:/data
+    depends_on: [gateway]
+
+  gateway:
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node-gateway:latest
+    restart: unless-stopped
+    environment:
+      SITES_FILE: /config/sites.json
+      TRUST_PROXY: "true"
+    configs:
+      - source: sites
+        target: /config/sites.json
+    depends_on: [mcp-v17, mcp-v18, mcp-v19]
+
+  mcp-v17:
+    <<: *backend
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v17
+    volumes: [mcp-v17-data:/data]
+
+  mcp-v18:
+    <<: *backend
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v18
+    volumes: [mcp-v18-data:/data]
+
+  mcp-v19:
+    <<: *backend
+    image: ghcr.io/nul800sebastiaan/umbraco-mcp-editor-node:v19
+    volumes: [mcp-v19-data:/data]
+
+configs:
+  sites:
+    content: |
+      { "sites": [
+        { "host": "marketing.mcp.example.com",
+          "baseUrl": "https://marketing.example.com",
+          "clientId": "umbraco-cms-editor-mcp-hosted",
+          "major": 18 }
+      ] }
+  caddyfile:
+    content: |
+      {
+        on_demand_tls {
+          ask http://gateway:8787/tls-check
+        }
+      }
+      https:// {
+        tls {
+          on_demand
+        }
+        reverse_proxy gateway:8787 {
+          flush_interval -1
+        }
+      }
+
+volumes:
+  mcp-v17-data:
+  mcp-v18-data:
+  mcp-v19-data:
+  caddy-data:
