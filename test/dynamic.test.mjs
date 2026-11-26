@@ -77,3 +77,23 @@ test("gateway: pending -> approved -> proxied with site headers; client headers 
     backend.close();
   }
 });
+
+import { encodeHost, appsettingsSnippet } from "../gateway/dynamic.mjs";
+
+test("encodeHost is the inverse of decodeHost", () => {
+  for (const [url, major] of [["https://releases.umbraco.com", 18], ["https://my-site.example.co.uk", 17]]) {
+    const host = encodeHost(url, major, D);
+    const back = decodeHost(host, D);
+    assert.equal(back.ok, true, host);
+    assert.equal(back.baseUrl, url);
+    assert.equal(back.major, major);
+  }
+});
+
+test("appsettings snippet lists one origin per major", () => {
+  const s = JSON.parse(appsettingsSnippet("https://releases.umbraco.com", [19, 18], D));
+  assert.deepEqual(s.HostedMcp.Clients[0], {
+    ClientId: "umbraco-cms-editor-mcp-hosted",
+    Origins: ["https://v18--releases--umbraco--com.mcp.example.com", "https://v19--releases--umbraco--com.mcp.example.com"],
+  });
+});

@@ -5,7 +5,7 @@
  */
 import { createServer } from "node:http";
 import { createHash, timingSafeEqual } from "node:crypto";
-import { assertPublicHost } from "./dynamic.mjs";
+import { appsettingsSnippet, assertPublicHost } from "./dynamic.mjs";
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -28,7 +28,8 @@ background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10
 button{font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;padding:5px 12px;cursor:pointer}
 button.ok{border-color:var(--ok);color:var(--ok)}button.bad{border-color:var(--bad);color:var(--bad)}
 input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);width:100%;max-width:340px}
-.msg{padding:8px 12px;border-radius:8px;background:var(--card);border:1px solid var(--line);margin-bottom:12px}.empty{color:var(--muted)}
+.msg{padding:8px 12px;border-radius:8px;background:var(--card);border:1px solid var(--line);margin-bottom:12px}.empty{color:var(--muted)}details{width:100%}summary{cursor:pointer;color:var(--accent);font-size:13px}
+pre{margin:6px 0 0;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:auto;font-size:12px;user-select:all}
 code{background:var(--card);padding:1px 5px;border-radius:4px}`;
 
 const page = (body) =>
@@ -71,14 +72,16 @@ export function startAdmin({ port, token, store, staticSites, domain, majors }) 
 <form method="post" action="/login"><input type="password" name="token" autocomplete="current-password" autofocus> <button class="ok">Sign in</button></form>`);
 
   const dashboard = (message) => {
+    const snippet = (url, majors) =>
+      `<details><summary>appsettings.json for this site</summary><pre>${esc(appsettingsSnippet(url, majors, domain))}</pre></details>`;
     const pending = [...store.pending.entries()]
       .map(([url, p]) => `<div class="row"><div><b>${esc(url)}</b><div class="meta">Umbraco ${p.majors.map(esc).join(", ")} &middot; first seen ${esc(p.firstSeen)}</div></div>
 <div><form method="post" action="/approve"><input type="hidden" name="site" value="${esc(url)}"><button class="ok">Approve</button></form>
-<form method="post" action="/deny"><input type="hidden" name="site" value="${esc(url)}"><button class="bad">Deny</button></form></div></div>`)
+<form method="post" action="/deny"><input type="hidden" name="site" value="${esc(url)}"><button class="bad">Deny</button></form></div>${snippet(url, p.majors)}</div>`)
       .join("");
     const approved = [...store.approved.entries()]
       .map(([url, a]) => `<div class="row"><div><b>${esc(url)}</b><div class="meta">approved ${esc(a.approvedAt)}</div></div>
-<form method="post" action="/remove"><input type="hidden" name="site" value="${esc(url)}"><button class="bad">Remove</button></form></div>`)
+<form method="post" action="/remove"><input type="hidden" name="site" value="${esc(url)}"><button class="bad">Remove</button></form>${snippet(url, majors)}</div>`)
       .join("");
     const fixed = staticSites.map((s) => `<div class="row"><div><b>${esc(s.baseUrl)}</b><div class="meta">${esc(s.host)} &middot; Umbraco ${esc(s.major)} &middot; from sites.json</div></div></div>`).join("");
     return page(`<h1>MCP site approvals</h1><p class="sub">Sites connect with hostnames like <code>v18--site--example--com.${esc(domain)}</code> (supported majors: ${esc(majors.join(", "))}). Approving a site allows every version of it.</p>

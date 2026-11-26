@@ -46,6 +46,22 @@ export function decodeHost(hostHeader, domain) {
   return { ok: true, major: Number(match[1]), baseUrl: `https://${name}`, name };
 }
 
+/** Inverse of decodeHost: the public hostname for an Umbraco URL and major, e.g. v18--releases--umbraco--com.mcp.example.com */
+export function encodeHost(baseUrl, major, domain) {
+  const name = new URL(baseUrl).hostname.toLowerCase().replaceAll(".", "--");
+  return `v${major}--${name}.${String(domain).trim().toLowerCase()}`;
+}
+
+/** The HostedMcp block the Umbraco site needs, with the origins for the given majors filled in. */
+export function appsettingsSnippet(baseUrl, majors, domain) {
+  const origins = [...majors].sort((a, b) => a - b).map((m) => `https://${encodeHost(baseUrl, m, domain)}`);
+  return JSON.stringify(
+    { HostedMcp: { Clients: [{ ClientId: "umbraco-cms-editor-mcp-hosted", Origins: origins }] } },
+    null,
+    2,
+  );
+}
+
 /** True for addresses a public site could legitimately have. Blocks private, loopback, link-local, etc. */
 export function isPublicAddress(ip) {
   if (net.isIPv4(ip)) {

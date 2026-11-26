@@ -66,7 +66,14 @@ Set `DYNAMIC_DOMAIN` (say `mcp.example.com`) and `ADMIN_TOKEN` on the gateway. T
 | `v18--releases--umbraco--com.mcp.example.com` | Umbraco 18 at `https://releases.umbraco.com` |
 | `v17--my-site--example--co--uk.mcp.example.com` | Umbraco 17 at `https://my-site.example.co.uk` |
 
-The site's `HostedMcp` origin is that same hostname (`https://v18--releases--umbraco--com.mcp.example.com`), and the connector is `…/mcp`.
+The site needs the `Umbraco.Mcp.HostedAuth` package and a `HostedMcp` block whose origin is that same hostname, and the connector is `…/mcp`. You don't have to write the block: the 403 response and the approval page both show it, ready to paste:
+
+```json
+"HostedMcp": { "Clients": [ { "ClientId": "umbraco-cms-editor-mcp-hosted",
+  "Origins": [ "https://v18--releases--umbraco--com.mcp.example.com" ] } ] }
+```
+
+`ClientId` must be present (HostedAuth silently ignores a self-hosted client without one) and is always that constant. `DisplayName` is optional.
 
 The first request from a new site is refused (403) and lands in a pending list. Open the **approval page** (port 8788, its own Pangolin/proxy route with authentication on, plus the `ADMIN_TOKEN`), review the decoded URL and click Approve. Approval is per Umbraco URL, so later `v17--`/`v19--` hostnames of the same site work with no new approval. Guards: only `https`, hostnames must resolve to public addresses at approval time, nothing is fetched before approval, the pending list is capped, and the port is separate from the public one. A DNS label is at most 63 characters, so very long site names need a `sites.json` entry instead. Fixed entries in `sites.json` keep working alongside.
 

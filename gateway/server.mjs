@@ -15,7 +15,7 @@
 import { createServer } from "node:http";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { Readable } from "node:stream";
-import { DynamicStore, decodeHost } from "./dynamic.mjs";
+import { DynamicStore, appsettingsSnippet, decodeHost } from "./dynamic.mjs";
 import { startAdmin } from "./admin.mjs";
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -97,7 +97,14 @@ function resolveHost(hostHeader) {
   }
   const recorded = dynamicStore.recordPending(decoded.baseUrl, decoded.major);
   console.log(`[gateway] awaiting approval: ${decoded.baseUrl} (Umbraco ${decoded.major})${recorded ? "" : " [pending list full, not recorded]"}`);
-  return { status: 403, error: `${decoded.baseUrl} is awaiting approval. Ask the administrator to approve it, then try again.` };
+  return {
+    status: 403,
+    error: `${decoded.baseUrl} is awaiting approval. Ask the administrator to approve it, then try again.`,
+    setup: {
+      note: "The Umbraco site also needs Umbraco.Mcp.HostedAuth and this block in appsettings.json (then a restart).",
+      appsettings: JSON.parse(appsettingsSnippet(decoded.baseUrl, [decoded.major], DYNAMIC_DOMAIN)),
+    },
+  };
 }
 
 function backendFor(major) {
@@ -182,7 +189,7 @@ const server = createServer(async (req, res) => {
 
     const hostHeader = (TRUST_PROXY && req.headers["x-forwarded-host"]) || req.headers.host;
     const resolved = resolveHost(hostHeader);
-    if (!resolved.site) return json(res, resolved.status, { error: resolved.error });
+    if (!resolved.site) return json(res, resolved.status, { error: resolved.error, ...(resolved.setup ? { setup: resolved.setup } : {}) });
 
     return await proxy(req, res, resolved.site, resolved.site.major);
   } catch (error) {
