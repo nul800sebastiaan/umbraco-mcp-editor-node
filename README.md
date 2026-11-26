@@ -66,7 +66,7 @@ Set `DYNAMIC_DOMAIN` (say `mcp.example.com`) and `ADMIN_TOKEN` on the gateway. T
 | `v18--releases--umbraco--com.mcp.example.com` | Umbraco 18 at `https://releases.umbraco.com` |
 | `v17--my-site--example--co--uk.mcp.example.com` | Umbraco 17 at `https://my-site.example.co.uk` |
 
-The site needs the `Umbraco.Mcp.HostedAuth` package and a `HostedMcp` block whose origin is that same hostname, and the connector is `…/mcp`. You don't have to write the block: the 403 response and the approval page both show it, ready to paste:
+The site needs the `Umbraco.Mcp.HostedAuth` package and a `HostedMcp` block whose origin is that same hostname, and the connector is `…/mcp`. You don't have to write the block: the approval page shows it for every site, ready to paste:
 
 ```json
 "HostedMcp": { "Clients": [ { "ClientId": "umbraco-cms-editor-mcp-hosted",
